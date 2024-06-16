@@ -70,7 +70,8 @@ const unfollowChecker = async (username) => {
 
     const followerSet = new Set(followers.map(follower => follower.pk));
     const notFollowingBack = following.filter(followed => !followerSet.has(followed.pk));
-    console.log(`Sorting ${notFollowingBack.length} users by follower count to show the least followed users first. Sleeping between requests to avoid rate limiting.`);
+    console.log(`There are ${notFollowingBack.length} users that don't follow you back.`);
+    console.log(`Sorting these ${notFollowingBack.length} users by follower count to show the least followed users first. Sleeping between requests to avoid rate limiting.`);
 
     const notFollowingBackWithInfo = await Promise.all(notFollowingBack.map(async (user) => {
         const userInfo = await getUserInfo(user.pk);

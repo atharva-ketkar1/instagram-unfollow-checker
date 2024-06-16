@@ -1,6 +1,6 @@
 
 //this is the public app id for instagram.com
-INSTAGRAM_APP_ID = "936619743392459"  
+INSTAGRAM_APP_ID = "936619743392459";
 
 const fetchRequest = {
     method: 'GET',
@@ -11,6 +11,13 @@ const fetchRequest = {
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 let username;
+
+const getUserInfo = async (user_pk) => {
+    const url = `https://www.instagram.com/api/v1/users/${user_pk}/info/`;
+    const data = await fetch(url, fetchRequest)
+        .then(res => res.json());
+    return data.user;
+};
 
 //function to get the user personal key
 const getUserPK = async (username) => {
@@ -32,7 +39,6 @@ const dataHelper = async (type,user_pk,count,max_id = "") => {
     if (max_id) {
         url += `&max_id=${max_id}`;
     }
-    console.log(max_id);
     const data = await fetch(url, fetchRequest)
         .then(res => res.json());
 
@@ -62,15 +68,23 @@ const unfollowChecker = async (username) => {
     const followers = await getFollowers(user_pk);
     const following = await getFollowing(user_pk);
 
-    const followerSet = new Set(followers.map(follower => follower.username));
-    const followingSet = new Set(following.map(followed => followed.username));
+    const followerSet = new Set(followers.map(follower => follower.pk));
+    const notFollowingBack = following.filter(followed => !followerSet.has(followed.pk));
+    console.log(`Sorting ${notFollowingBack.length} users by follower count to show the least followed users first. Sleeping between requests to avoid rate limiting.`);
 
-    const notFollowingBack = Array.from(followingSet).filter(following => !followerSet.has(following));
+    const notFollowingBackWithInfo = await Promise.all(notFollowingBack.map(async (user) => {
+        const userInfo = await getUserInfo(user.pk);
+        rand_sleep = Math.floor(Math.random() * (700) + 800)
+        await sleep(rand_sleep);
+        return { username: user.username, follower_count: userInfo.follower_count };
+    }));
 
-    return { notFollowingBack };
+    notFollowingBackWithInfo.sort((a, b) => a.follower_count - b.follower_count);
+
+    return { notFollowingBack: notFollowingBackWithInfo.map(user => user.username) };
 }
 
-//usernames will always be lowercase I think
+//Change the username to the one you want to check. Make sure you are logged in to instagram.com and go to the console to run the code.
 username = "username";
 
 unfollowChecker(username).then(console.log);
